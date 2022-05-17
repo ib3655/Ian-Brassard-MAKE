@@ -126,77 +126,121 @@ function set_state(n)
 	game_state = n
 end
 
+-- game states
+
+function state_one()								-- state 1: level 1
+	rem = MAX_ENEMIES - total_dead
+	for i = 1, #enemies do
+		if enemies[i] then
+			enemies[i]:update()
+			if left and enemies[i]:isAt(mx, my) then
+				enemies[i]:hurt(player:get_pwr())
+			end
+			if enemies[i].hp <= 0 or enemies[i].x <= (player.x + 8) then
+				enemies[i]:die()
+				total_dead = total_dead + 1
+				if total_enemies < MAX_ENEMIES then
+					enemies[i] = Enemy:new{x = math.random(WIDTH + 10, WIDTH*1.5), y = math.random(8, HEIGHT - 16), spd = map(math.random(), 0, 1, 0.5, 1.5)}
+					total_enemies = total_enemies + 1
+				else
+					table.remove(enemies, i)
+				end
+			end
+		end
+	end
+	player:display()
+	if left then player:laser(mx, my) end
+	print("enemies remaining: "..rem, WIDTH/2, 10, BLACK)
+	if rem == 0 and not timer then
+		timer = time()
+	end
+	if timer and time() - timer >= 2000 then
+		init_level(enemies,10,2)
+	end
+end
+
+function state_two()								-- state 2: level 2
+	print("space to restart", WIDTH/2 - 32, HEIGHT/2, BLACK)
+	if keyp(48) then init_level(enemies, 10, 13) end
+end
+
+function state_three() end
+
+function state_four() end
+
+function state_five() end
+
+function state_six() end
+
+function state_seven() end
+
+function state_eight() end
+
+function state_nine() end
+
+function state_ten() end
+
+function state_eleven()								-- state 11: victory screen
+	mid_y = HEIGHT/2
+	str0 = "Congratulations!"
+	str1 = "You completed level "..last_state.."!"
+	pos0 = print(str0, 0, -100, BLACK, false, 2)
+	pos1 = print(str1, 0, -100, BLACK, false, 2)
+	print(str0, (WIDTH/2)-(pos0/2), mid_y - 11, BLACK, false, 2)
+	print(str1,(WIDTH/2)-(pos1/2), mid_y, BLACK, false, 2)
+end
+
+function state_twelve()								-- state 12: defeat screen
+	print("u lose lmao", WIDTH/2, HEIGHT/2, RED)
+end
+
+function state_thirteen()							-- state 13: title screen
+	str0 = "The Imposition"
+	str1 = "Of Angles"
+	str2 = "Click to fire laser."
+	str3 = "Destroy all enemies."
+	str4 = "Space to begin."
+	pos0 = print(str0, 0, -100, BLACK, false, 2)
+	pos1 = print(str1, 0, -100, BLACK, false, 2)
+	pos2 = print(str2, 0, -100, BLACK, false, 1)
+	pos3 = print(str3, 0, -100, BLACK, false, 1)
+	pos4 = print(str4, 0, -100, BLACK, false, 1)
+	print(str0, (WIDTH/2)-(pos0/2), 15, BLACK, false, 2)
+	print(str1, (WIDTH/2)-(pos1/2), 27, BLACK, false, 2)
+	print(str2, (WIDTH/2)-(pos2/2), HEIGHT/2, BLACK, false, 1)
+	print(str3, (WIDTH/2)-(pos3/2), HEIGHT/2 + 10, BLACK, false, 1)
+	print(str4, (WIDTH/2)-(pos4/2), HEIGHT/2 + 20, BLACK, false, 1)
+	if keyp(48) then init_level(enemies, 10, 1) end
+end
+
 -- initialization
 player = Player:new()
 enemies = {}
 total_enemies = 0
 total_dead = 0
-game_state = 0
-last_state = 0
+states = {
+	state_one,			-- one thru ten are gameplay levels
+	state_two,
+	state_three,
+	state_four,
+	state_five,
+	state_six,
+	state_seven,
+	state_eight,
+	state_nine,
+	state_ten,
+	state_eleven,		-- victory screen
+	state_twelve,		-- defeat screen
+	state_thirteen		-- title screen
+}
+game_state = 13
+last_state = 13
 
+-- abstract each game state to its own function, then dump them in an array (at index game_state), call into that array during run time
 function TIC()
 	mx,my,left = mouse()
 	cls(BLUE)
-	if game_state == -1 then							-- state -1: defeat
-		print("u lose lmao", WIDTH/2, HEIGHT/2, RED)
-	elseif game_state == 0 then							-- state 0: title
-		str0 = "The Imposition"
-		str1 = "Of Angles"
-		str2 = "Click to fire laser."
-		str3 = "Destroy all enemies."
-		str4 = "Space to begin."
-		pos0 = print(str0, 0, -100, BLACK, false, 2)
-		pos1 = print(str1, 0, -100, BLACK, false, 2)
-		pos2 = print(str2, 0, -100, BLACK, false, 1)
-		pos3 = print(str3, 0, -100, BLACK, false, 1)
-		pos4 = print(str4, 0, -100, BLACK, false, 1)
-		print(str0, (WIDTH/2)-(pos0/2), 15, BLACK, false, 2)
-		print(str1, (WIDTH/2)-(pos1/2), 27, BLACK, false, 2)
-		print(str2, (WIDTH/2)-(pos2/2), HEIGHT/2, BLACK, false, 1)
-		print(str3, (WIDTH/2)-(pos3/2), HEIGHT/2 + 10, BLACK, false, 1)
-		print(str4, (WIDTH/2)-(pos4/2), HEIGHT/2 + 20, BLACK, false, 1)
-		if keyp(48) then init_level(enemies, 10, 1) end
-	elseif game_state == 1 then							-- state 1: level 1
-		rem = MAX_ENEMIES - total_dead
-		for i = 1, #enemies do
-			if enemies[i] then
-				enemies[i]:update()
-				if left and enemies[i]:isAt(mx, my) then
-					enemies[i]:hurt(player:get_pwr())
-				end
-				if enemies[i].hp <= 0 or enemies[i].x <= (player.x + 8) then
-					enemies[i]:die()
-					total_dead = total_dead + 1
-					if total_enemies < MAX_ENEMIES then
-						enemies[i] = Enemy:new{x = math.random(WIDTH + 10, WIDTH*1.5), y = math.random(8, HEIGHT - 16), spd = map(math.random(), 0, 1, 0.5, 1.5)}
-						total_enemies = total_enemies + 1
-					else
-						table.remove(enemies, i)
-					end
-				end
-			end
-		end
-		player:display()
-		if left then player:laser(mx, my) end
-		print("enemies remaining: "..rem, WIDTH/2, 10, BLACK)
-		if rem == 0 and not timer then
-			timer = time()
-		end
-		if timer and time() - timer >= 2000 then
-			init_level(enemies,10,2)
-		end
-	elseif game_state == 2 then							-- state 2: level 2
-		print("space to restart", WIDTH/2 - 32, HEIGHT/2, BLACK)
-		if keyp(48) then init_level(enemies, 10, 0) end
-	elseif game_state == 11 then						-- state 11: victory
-		mid_y = HEIGHT/2
-		str0 = "Congratulations!"
-		str1 = "You completed level "..last_state.."!"
-		pos0 = print(str0, 0, -100, BLACK, false, 2)
-		pos1 = print(str1, 0, -100, BLACK, false, 2)
-		print(str0, (WIDTH/2)-(pos0/2), mid_y - 11, BLACK, false, 2)
-		print(str1,(WIDTH/2)-(pos1/2), mid_y, BLACK, false, 2)
-	end
+	states[game_state]()
 end
 
 -- <SPRITES>
