@@ -7,23 +7,31 @@
 
 trace("Licensed under GPLv3")
 
---[[
-TODO:
-1. Enemies hurt player
-2. Special enemy types
-3. 10 levels
-]]
+-- TODO: defeat screen, instructions screen
 
 -- constants
 WIDTH = 240
 HEIGHT = 136
 MAX_ENEMIES = 100
 BLACK = 0
+PURPLE = 1
 RED = 2
+ORANGE = 3
+YELLOW = 4
+LIGHT_GREEN = 5
+GREEN = 6
+TURQOISE = 7
+DARK_BLUE = 8
 BLUE = 9
+LIGHT_BLUE = 10
+TEAL = 11
+WHITE = 12
+LIGHT_GRAY = 13
+GRAY = 14
+DARK_GRAY = 15
 
 -- class Player
-Player = {x = 0, y = 8, sprite_id = 256, hp = 100, pwr = 1, score = 0}
+Player = {x = 0, y = 8, sprite_id = 256, hp = 50, pwr = 1, score = 0}
 
 function Player:new(o)
 	o = o or {}
@@ -32,19 +40,14 @@ function Player:new(o)
 	return o
 end
 
-function Player:display()
-	spr(self.sprite_id,self.x,self.y,BLACK,2,0,0,4,8)
-end
-
-function Player:laser(xpos, ypos)
-	origin = {x = self.x + 37, y = self.y + 12}
-	line(origin.x, origin.y, xpos, ypos, RED)
-	line(origin.x, origin.y, xpos, ypos-1, RED)
-	line(origin.x, origin.y, xpos, ypos+1, RED)
-end
-
 function Player:add_score()
 	self.score = self.score + 1
+end
+
+function Player:display()
+	spr(self.sprite_id,self.x,self.y,BLACK,2,0,0,4,8)
+	rect((self.x + 32) - math.ceil(self.hp/2), self.y, math.ceil(self.hp/2), 3, RED)
+	rect(self.x + 32, self.y, math.ceil(self.hp/2), 3, RED)
 end
 
 function Player:get_score()
@@ -53,6 +56,21 @@ end
 
 function Player:get_pwr()
 	return self.pwr
+end
+
+function Player:heal(dmg)
+	self.hp = self.hp + dmg
+end
+
+function Player:hurt(dmg)
+	self.hp = self.hp - dmg
+end
+
+function Player:laser(xpos, ypos)
+	origin = {x = self.x + 37, y = self.y + 12}
+	line(origin.x, origin.y, xpos, ypos, RED)
+	line(origin.x, origin.y, xpos, ypos-1, RED)
+	line(origin.x, origin.y, xpos, ypos+1, RED)
 end
 -- Player end
 
@@ -68,8 +86,8 @@ end
 
 function Enemy:display()
 	spr(self.spr_id, self.x, self.y, 0, 1, 0, 0, 2, 2)
-	circb(self.x+7,self.y+7,8,BLACK)
-	rect(self.x,self.y,self.hp,3,RED)
+	rect((self.x + 7) - math.ceil(self.hp/2), self.y, math.ceil(self.hp/2), 3, RED)
+	rect(self.x + 7, self.y, math.ceil(self.hp/2), 3, RED)
 end
 
 function Enemy:hurt(dmg)
@@ -78,6 +96,7 @@ end
 
 function Enemy:die()
 	self.dead = true
+	total_dead = total_dead + 1
 end
 
 function Enemy:move()
@@ -96,20 +115,36 @@ function Enemy:update()
 end
 -- Enemy end
 
+-- class Health Enemy extends Enemy
+HealthEnemy = Enemy:new()
+
+function HealthEnemy:display()
+	spr(self.spr_id + 32, self.x, self.y, 0, 1, 0, 0, 2, 2)
+	rect((self.x + 7) - math.ceil(self.hp/2), self.y, math.ceil(self.hp/2), 3, RED)
+	rect(self.x + 7, self.y, math.ceil(self.hp/2), 3, RED)
+end
+-- Health Enemy end
+
+-- class Super Enemy extends Enemy
+SuperEnemy = Enemy:new()
+
+function SuperEnemy:display()
+	spr(self.spr_id + 64, self.x, self.y, 0, 1, 0, 0, 2, 2)
+	rect((self.x + 7) - math.ceil(self.hp/2), self.y, math.ceil(self.hp/2), 3, RED)
+	rect(self.x + 7, self.y, math.ceil(self.hp/2), 3, RED)
+end
+-- Super Enemy end
+
 function dist(x1, y1, x2, y2)
 	return ((x2-x1)^2+(y2-y1)^2)^0.5
 end
 
 function init_level(list, length, level)
-	list = list or {}
-	length = length or 10
-	level = level or 1
-	if level == 1 then
-		for i = 1, length do
-			list[i] = Enemy:new{x = math.random(WIDTH + 10, WIDTH*1.5), y = math.random(8, HEIGHT - 16), spd = map(math.random(), 0, 1, 0.5, 1.5)}
-		end
-	elseif level == 2 then
-		
+	local list = list or {}
+	local length = length or 10
+	local level = level or 1
+	for i = 1, length do
+		list[i] = spawn_enemy(level)
 	end
 	set_state(level)
 	total_dead = 0
@@ -117,8 +152,8 @@ function init_level(list, length, level)
 	timer = nil
 end
 
-function map(n,x1,y1,x2,y2)  -- adapted from https://stackoverflow.com/questions/5731863/mapping-a-numeric-range-onto-another
-	return x2 + ((y2 - x2)/(y1 - x1)) * (n - x1)
+function map(n,a,b,x,y)  -- adapted from https://stackoverflow.com/questions/5731863/mapping-a-numeric-range-onto-another
+	return x + ((y - x)/(b - a)) * (n - a)
 end
 
 function set_state(n)
@@ -126,75 +161,279 @@ function set_state(n)
 	game_state = n
 end
 
--- game states
+function spawn_enemy(lvl)
+	total_enemies = total_enemies + 1
+	local selection = math.random()
+	if lvl < 3 then
+		if selection < 0.1 then
+			return HealthEnemy:new{x = math.random(WIDTH + 10, WIDTH*1.5), y = math.random(8, HEIGHT - 16), spd = map(math.random(), 0, 1, 0.5, 1.5)}
+		else 
+			return Enemy:new{x = math.random(WIDTH + 10, WIDTH*1.5), y = math.random(8, HEIGHT - 16), spd = map(math.random(), 0, 1, 0.5, 1.5)}
+		end
+	elseif lvl < 9 then
+		if selection < 0.01 then
+			return SuperEnemy:new{x = math.random(WIDTH + 10, WIDTH*1.5), y = math.random(8, HEIGHT - 16), hp = 100, spd = map(math.random(), 0, 1, 0.2, 0.7)}
+		elseif selection >= 0.8 then
+			return HealthEnemy:new{x = math.random(WIDTH + 10, WIDTH*1.5), y = math.random(8, HEIGHT - 16), spd = map(math.random(), 0, 1, 0.5, 1.5)}
+		else
+			return Enemy:new{x = math.random(WIDTH + 10, WIDTH*1.5), y = math.random(8, HEIGHT - 16), spd = map(math.random(), 0, 1, 0.5, 1.5)}
+		end
+	else
+		if selection < 0.05 then
+			return SuperEnemy:new{x = math.random(WIDTH + 10, WIDTH*1.5), y = math.random(8, HEIGHT - 16), hp = 100, spd = map(math.random(), 0, 1, 0.2, 0.7)}
+		elseif selection >= 0.8 then
+			return HealthEnemy:new{x = math.random(WIDTH + 10, WIDTH*1.5), y = math.random(8, HEIGHT - 16), spd = map(math.random(), 0, 1, 0.5, 1.5)}
+		else
+			return Enemy:new{x = math.random(WIDTH + 10, WIDTH*1.5), y = math.random(8, HEIGHT - 16), spd = map(math.random(), 0, 1, 0.5, 1.5)}
+		end
+	end
+end
 
-function state_one()								-- state 1: level 1
-	rem = MAX_ENEMIES - total_dead
+function update_enemies()
 	for i = 1, #enemies do
 		if enemies[i] then
 			enemies[i]:update()
 			if left and enemies[i]:isAt(mx, my) then
 				enemies[i]:hurt(player:get_pwr())
 			end
-			if enemies[i].hp <= 0 or enemies[i].x <= (player.x + 8) then
+			if enemies[i].x <= player.x + 54 then
+				player:hurt(enemies[i].hp)
 				enemies[i]:die()
-				total_dead = total_dead + 1
 				if total_enemies < MAX_ENEMIES then
-					enemies[i] = Enemy:new{x = math.random(WIDTH + 10, WIDTH*1.5), y = math.random(8, HEIGHT - 16), spd = map(math.random(), 0, 1, 0.5, 1.5)}
-					total_enemies = total_enemies + 1
+					enemies[i] = spawn_enemy(game_state)
+				else
+					table.remove(enemies, i)
+				end
+			end
+			if enemies[i] and enemies[i].hp <= 0 then
+				enemies[i]:die()
+				player:add_score()
+				if getmetatable(enemies[i]) == HealthEnemy and player.hp <= 50 then
+					player:heal(10)
+				end
+				if total_enemies < MAX_ENEMIES then
+					enemies[i] = spawn_enemy(game_state)
 				else
 					table.remove(enemies, i)
 				end
 			end
 		end
 	end
+end
+
+-- game states
+function state_one()								-- states 1 - 10 are levels 1 - 10
+	if player.hp <= 0 then
+		init_level(enemies, 0, 12)
+	end
+	cls(LIGHT_BLUE)
+	rem = MAX_ENEMIES - total_dead
+	update_enemies()
 	player:display()
 	if left then player:laser(mx, my) end
 	print("enemies remaining: "..rem, WIDTH/2, 10, BLACK)
+	print("level: "..game_state, player.x + 64, 10, BLACK)
 	if rem == 0 and not timer then
 		timer = time()
 	end
 	if timer and time() - timer >= 2000 then
-		init_level(enemies,10,2)
+		init_level(enemies,10,game_state + 1)
 	end
 end
 
-function state_two()								-- state 2: level 2
-	print("space to restart", WIDTH/2 - 32, HEIGHT/2, BLACK)
-	if keyp(48) then init_level(enemies, 10, 13) end
+function state_two()
+	if player.hp <= 0 then
+		init_level(enemies, 0, 12)
+	end
+	cls(BLUE)
+	rem = MAX_ENEMIES - total_dead
+	update_enemies()
+	player:display()
+	if left then player:laser(mx, my) end
+	print("enemies remaining: "..rem, WIDTH/2, 10, BLACK)
+	print("level: "..game_state, player.x + 64, 10, BLACK)
+	if rem == 0 and not timer then
+		timer = time()
+	end
+	if timer and time() - timer >= 2000 then
+		init_level(enemies,10,game_state + 1)
+	end
 end
 
-function state_three() end
+function state_three()
+	if player.hp <= 0 then
+		init_level(enemies, 0, 12)
+	end
+	cls(DARK_BLUE)
+	rem = MAX_ENEMIES - total_dead
+	update_enemies()
+	player:display()
+	if left then player:laser(mx, my) end
+	print("enemies remaining: "..rem, WIDTH/2, 10, BLACK)
+	print("level: "..game_state, player.x + 64, 10, BLACK)
+	if rem == 0 and not timer then
+		timer = time()
+	end
+	if timer and time() - timer >= 2000 then
+		init_level(enemies,10,game_state + 1)
+	end
+end
 
-function state_four() end
+function state_four()
+	if player.hp <= 0 then
+		init_level(enemies, 0, 12)
+	end
+	cls(PURPLE)
+	rem = MAX_ENEMIES - total_dead
+	update_enemies()
+	player:display()
+	if left then player:laser(mx, my) end
+	print("enemies remaining: "..rem, WIDTH/2, 10, BLACK)
+	print("level: "..game_state, player.x + 64, 10, BLACK)
+	if rem == 0 and not timer then
+		timer = time()
+	end
+	if timer and time() - timer >= 2000 then
+		init_level(enemies,10,game_state + 1)
+	end
+end
 
-function state_five() end
+function state_five()
+	if player.hp <= 0 then
+		init_level(enemies, 0, 12)
+	end
+	cls(GRAY)
+	rem = MAX_ENEMIES - total_dead
+	update_enemies()
+	player:display()
+	if left then player:laser(mx, my) end
+	print("enemies remaining: "..rem, WIDTH/2, 10, BLACK)
+	print("level: "..game_state, player.x + 64, 10, BLACK)
+	if rem == 0 and not timer then
+		timer = time()
+	end
+	if timer and time() - timer >= 2000 then
+		init_level(enemies,10,game_state + 1)
+	end
+end
 
-function state_six() end
+function state_six() 
+	if player.hp <= 0 then
+		init_level(enemies, 0, 12)
+	end
+	cls(GREEN)
+	rem = MAX_ENEMIES - total_dead
+	update_enemies()
+	player:display()
+	if left then player:laser(mx, my) end
+	print("enemies remaining: "..rem, WIDTH/2, 10, BLACK)
+	print("level: "..game_state, player.x + 64, 10, BLACK)
+	if rem == 0 and not timer then
+		timer = time()
+	end
+	if timer and time() - timer >= 2000 then
+		init_level(enemies,10,game_state + 1)
+	end
+end
 
-function state_seven() end
+function state_seven()
+	if player.hp <= 0 then
+		init_level(enemies, 0, 12)
+	end
+	cls(TURQOISE)
+	rem = MAX_ENEMIES - total_dead
+	update_enemies()
+	player:display()
+	if left then player:laser(mx, my) end
+	print("enemies remaining: "..rem, WIDTH/2, 10, BLACK)
+	print("level: "..game_state, player.x + 64, 10, BLACK)
+	if rem == 0 and not timer then
+		timer = time()
+	end
+	if timer and time() - timer >= 2000 then
+		init_level(enemies,10,game_state + 1)
+	end
+end
 
-function state_eight() end
+function state_eight()
+	if player.hp <= 0 then
+		init_level(enemies, 0, 12)
+	end
+	cls(GRAY)
+	rem = MAX_ENEMIES - total_dead
+	update_enemies()
+	player:display()
+	if left then player:laser(mx, my) end
+	print("enemies remaining: "..rem, WIDTH/2, 10, BLACK)
+	print("level: "..game_state, player.x + 64, 10, BLACK)
+	if rem == 0 and not timer then
+		timer = time()
+	end
+	if timer and time() - timer >= 2000 then
+		init_level(enemies,10,game_state + 1)
+	end
+end
 
-function state_nine() end
+function state_nine()
+	if player.hp <= 0 then
+		init_level(enemies, 0, 12)
+	end
+	cls(DARK_GRAY)
+	rem = MAX_ENEMIES - total_dead
+	update_enemies()
+	player:display()
+	if left then player:laser(mx, my) end
+	print("enemies remaining: "..rem, WIDTH/2, 10, WHITE)
+	print("level: "..game_state, player.x + 64, 10, WHITE)
+	if rem == 0 and not timer then
+		timer = time()
+	end
+	if timer and time() - timer >= 2000 then
+		init_level(enemies,10,game_state + 1)
+	end
+end
 
-function state_ten() end
+function state_ten()
+	if player.hp <= 0 then
+		init_level(enemies, 0, 12)
+	end
+	cls(BLACK)
+	rem = MAX_ENEMIES - total_dead
+	update_enemies()
+	player:display()
+	if left then player:laser(mx, my) end
+	print("enemies remaining: "..rem, WIDTH/2, 10, WHITE)
+	print("level: "..game_state, player.x + 64, 10, WHITE)
+	if rem == 0 and not timer then
+		timer = time()
+	end
+	if timer and time() - timer >= 2000 then
+		init_level(enemies,10,game_state + 1)
+	end
+end
 
 function state_eleven()								-- state 11: victory screen
+	cls(LIGHT_BLUE)
 	mid_y = HEIGHT/2
 	str0 = "Congratulations!"
-	str1 = "You completed level "..last_state.."!"
+	str1 = "You won!"
+	str2 = "Score: "..player:get_score()
 	pos0 = print(str0, 0, -100, BLACK, false, 2)
 	pos1 = print(str1, 0, -100, BLACK, false, 2)
+	pos2 = print(str2, 0, -100, BLACK, false, 2)
 	print(str0, (WIDTH/2)-(pos0/2), mid_y - 11, BLACK, false, 2)
 	print(str1,(WIDTH/2)-(pos1/2), mid_y, BLACK, false, 2)
+	print(str2,(WIDTH/2)-(pos2/2), mid_y + 21, BLACK, false, 2)
 end
 
 function state_twelve()								-- state 12: defeat screen
+	cls(BLUE)
 	print("u lose lmao", WIDTH/2, HEIGHT/2, RED)
+	if keyp(48) then init_level(enemies, 0, 13) end
 end
 
 function state_thirteen()							-- state 13: title screen
+	cls(BLUE)
 	str0 = "The Imposition"
 	str1 = "Of Angles"
 	str2 = "Click to fire laser."
@@ -212,6 +451,8 @@ function state_thirteen()							-- state 13: title screen
 	print(str4, (WIDTH/2)-(pos4/2), HEIGHT/2 + 20, BLACK, false, 1)
 	if keyp(48) then init_level(enemies, 10, 1) end
 end
+
+function state_fourteen() end						-- state 14: instructions screen
 
 -- initialization
 player = Player:new()
@@ -231,7 +472,8 @@ states = {
 	state_ten,
 	state_eleven,		-- victory screen
 	state_twelve,		-- defeat screen
-	state_thirteen		-- title screen
+	state_thirteen,		-- title screen
+	state_fourteen		-- instructions screen
 }
 game_state = 13
 last_state = 13
@@ -239,31 +481,30 @@ last_state = 13
 -- abstract each game state to its own function, then dump them in an array (at index game_state), call into that array during run time
 function TIC()
 	mx,my,left = mouse()
-	cls(BLUE)
 	states[game_state]()
 end
 
 -- <SPRITES>
 -- 001:000000020000002c000002cc00002ccc0002cccc002ccccc02cccccc2ccccccc
 -- 002:20000000c2000000cc200000ccc20000cccc2000ccfcc200ccfccc20ccccccc2
--- 004:0000000400000046000004660000466600046666004666660466666646666666
--- 005:4000000064000000640000006640004466404400666400006664000066640000
+-- 004:0000000400000049000004990000499900049999004999990499999949999999
+-- 005:4000000094000000940000009940004499404400999400009994000099940000
 -- 017:2ccccccc02cccccc002ccccc0002cccc00002ccc000002cc00001c2c0001ccc2
 -- 018:ccccccc2cccccc20ccccc200cccc2000ccc20000cc200000c2c100002ccc1000
--- 020:4666666604666666004666660004666600004666000004660000004600000004
--- 021:6664000066640000666400006640440066400044640000006400000040000000
+-- 020:4999999904999999004999990004999900004999000004990000004900000004
+-- 021:9994000099940000999400009940440099400044940000009400000040000000
 -- 032:000000000000000000000000000000010000001c000001cc00001ccc0001cccc
 -- 033:001ccccc01cccccc1ccccccccccccccccccccccccccccccccccccccccccccccc
 -- 034:ccccc100cccccc10ccccccc1cccccccccccccccccccccccccccccccccccccccc
 -- 035:00000000000000000000000010000000c1000000cc100000ccc10000cccc1000
--- 036:0000000400000049000004990000499900049999004999990499999949999999
--- 037:4000000094000000940000009940004499404400999400009994000099940000
+-- 036:0000000400000046000004660000466600046666004666660466666646666666
+-- 037:4000000064000000640000006640004466404400666400006664000066640000
 -- 048:001ccccc001ccccc001ccccc001ccccc001ccccc001ccccc001ccccc001ccccc
 -- 049:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 -- 050:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 -- 051:ccccc100ccccc100ccccc100ccccc100ccccc100ccccc100ccccc100ccccc100
--- 052:4999999904999999004999990004999900004999000004990000004900000004
--- 053:9994000099940000999400009940440099400044940000009400000040000000
+-- 052:4666666604666666004666660004666600004666000004660000004600000004
+-- 053:6664000066640000666400006640440066400044640000006400000040000000
 -- 064:001ccccc001ccccc001ccccc001ccccc001ccccc001ccccc001ccccc001ccccc
 -- 065:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 -- 066:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
