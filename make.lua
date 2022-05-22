@@ -1,13 +1,14 @@
--- title:   The Imposition of Angles
--- author:  Ian Brassard <ib3655@bard.edu>
--- desc:    CMSC 336 Games Systems MAKE assignment
+--[[
+	Ian Brassard <ib3655@bard.edu>
+	23 May 2022
+	CMSC 336 Games Systems
+	Make assignment
+	I worked alone on this, but I consulted Stack Overflow for my map function.
+	The appropriate thread is linked there.
+--]]
+
 -- license: GNU GPL 3.0
--- version: 0.1
--- script:  lua
-
 trace("Licensed under GPLv3")
-
--- TODO: defeat screen, instructions screen
 
 -- constants
 WIDTH = 240
@@ -16,17 +17,12 @@ MAX_ENEMIES = 100
 BLACK = 0
 PURPLE = 1
 RED = 2
-ORANGE = 3
-YELLOW = 4
-LIGHT_GREEN = 5
 GREEN = 6
 TURQOISE = 7
 DARK_BLUE = 8
 BLUE = 9
 LIGHT_BLUE = 10
-TEAL = 11
 WHITE = 12
-LIGHT_GRAY = 13
 GRAY = 14
 DARK_GRAY = 15
 
@@ -269,8 +265,8 @@ function state_three()
 	update_enemies()
 	player:display()
 	if left then player:laser(mx, my) end
-	print("enemies remaining: "..rem, WIDTH/2, 10, BLACK)
-	print("level: "..game_state, player.x + 64, 10, BLACK)
+	print("enemies remaining: "..rem, WIDTH/2, 10, WHITE)
+	print("level: "..game_state, player.x + 64, 10, WHITE)
 	if rem == 0 and not timer then
 		timer = time()
 	end
@@ -288,8 +284,8 @@ function state_four()
 	update_enemies()
 	player:display()
 	if left then player:laser(mx, my) end
-	print("enemies remaining: "..rem, WIDTH/2, 10, BLACK)
-	print("level: "..game_state, player.x + 64, 10, BLACK)
+	print("enemies remaining: "..rem, WIDTH/2, 10, WHITE)
+	print("level: "..game_state, player.x + 64, 10, WHITE)
 	if rem == 0 and not timer then
 		timer = time()
 	end
@@ -414,13 +410,13 @@ end
 
 function state_eleven()								-- state 11: victory screen
 	cls(LIGHT_BLUE)
-	mid_y = HEIGHT/2
-	str0 = "Congratulations!"
-	str1 = "You won!"
-	str2 = "Score: "..player:get_score()
-	pos0 = print(str0, 0, -100, BLACK, false, 2)
-	pos1 = print(str1, 0, -100, BLACK, false, 2)
-	pos2 = print(str2, 0, -100, BLACK, false, 2)
+	local mid_y = HEIGHT/2
+	local str0 = "Congratulations!"
+	local str1 = "You won!"
+	local str2 = "Score: "..player:get_score()
+	local pos0 = print(str0, 0, -100, BLACK, false, 2)
+	local pos1 = print(str1, 0, -100, BLACK, false, 2)
+	local pos2 = print(str2, 0, -100, BLACK, false, 2)
 	print(str0, (WIDTH/2)-(pos0/2), mid_y - 11, BLACK, false, 2)
 	print(str1,(WIDTH/2)-(pos1/2), mid_y, BLACK, false, 2)
 	print(str2,(WIDTH/2)-(pos2/2), mid_y + 21, BLACK, false, 2)
@@ -428,31 +424,71 @@ end
 
 function state_twelve()								-- state 12: defeat screen
 	cls(BLUE)
-	print("u lose lmao", WIDTH/2, HEIGHT/2, RED)
-	if keyp(48) then init_level(enemies, 0, 13) end
+	local str0 = ""
+	if last_state > 7 then
+		str0 = "Almost there!"
+	else
+		str0 = "Tough luck!"
+	end
+	local str1 = "You died, but keep trying!"
+	local str2 = "Your enemies must be destroyed!"
+	local str3 = "Space to restart."
+	local pos0 = print(str0, 0, -100, BLACK, false, 2)
+	local pos1 = print(str1, 0, -100, BLACK, false, 1)
+	local pos2 = print(str2, 0, -100, BLACK, false, 1)
+	local pos3 = print(str3, 0, -100, BLACK, false, 1)
+	print(str0, (WIDTH/2)-(pos0/2), 15, BLACK, false, 2)
+	print(str1, (WIDTH/2)-(pos1/2), HEIGHT/2 - 7, BLACK, false, 1)
+	print(str2, (WIDTH/2)-(pos2/2), HEIGHT/2, BLACK, false, 1)
+	print(str3, (WIDTH/2)-(pos3/2), 107, BLACK, false, 1)
+	if keyp(48) then reset() end
 end
 
 function state_thirteen()							-- state 13: title screen
 	cls(BLUE)
-	str0 = "The Imposition"
-	str1 = "Of Angles"
-	str2 = "Click to fire laser."
-	str3 = "Destroy all enemies."
-	str4 = "Space to begin."
-	pos0 = print(str0, 0, -100, BLACK, false, 2)
-	pos1 = print(str1, 0, -100, BLACK, false, 2)
-	pos2 = print(str2, 0, -100, BLACK, false, 1)
-	pos3 = print(str3, 0, -100, BLACK, false, 1)
-	pos4 = print(str4, 0, -100, BLACK, false, 1)
+	local str0 = "The Imposition"
+	local str1 = "Of Angles"
+	local str2 = "Z for instructions."
+	local str3 = "Space to begin."
+	local pos0 = print(str0, 0, -100, BLACK, false, 2)
+	local pos1 = print(str1, 0, -100, BLACK, false, 2)
+	local pos2 = print(str2, 0, -100, BLACK, false, 1)
+	local pos3 = print(str3, 0, -100, BLACK, false, 1)
 	print(str0, (WIDTH/2)-(pos0/2), 15, BLACK, false, 2)
 	print(str1, (WIDTH/2)-(pos1/2), 27, BLACK, false, 2)
 	print(str2, (WIDTH/2)-(pos2/2), HEIGHT/2, BLACK, false, 1)
 	print(str3, (WIDTH/2)-(pos3/2), HEIGHT/2 + 10, BLACK, false, 1)
-	print(str4, (WIDTH/2)-(pos4/2), HEIGHT/2 + 20, BLACK, false, 1)
-	if keyp(48) then init_level(enemies, 10, 1) end
+	if keyp(48) then
+		init_level(enemies, 10, 1)
+	elseif keyp(26) then
+		init_level(enemies, 0, 14)
+	end
 end
 
-function state_fourteen() end						-- state 14: instructions screen
+function state_fourteen()							-- state 14: instructions screen
+	cls(BLUE)
+	local str0 = "Instructions"
+	local str1 = "Hold left-click to fire laser at enemies."
+	local str2 = "If enemies hit you, they will hurt you"
+	local str3 = "equal to their current health."
+	local str4 = "Blue enemies are the most basic"
+	local str5 = "Green enemies heal you when destroyed"
+	local str6 = "Purple enemies are strong but slow"
+	local str7 = "Space to begin."
+	local pos0 = print(str0, 0, -100, BLACK, false, 2)
+	print(str0, (WIDTH/2)-(pos0/2), 5, BLACK, false, 2)
+	print(str1, 10, 21, BLACK, false, 1)
+	print(str2, 10, 27, BLACK, false, 1)
+	print(str3, 10, 33, BLACK, false, 1)
+	spr(260, 10, 44, BLACK, 1, 1, 0, 2, 2)
+	print(str4, 28, 49, BLACK, false, 1)
+	spr(292, 10, 60, BLACK, 1, 1, 0, 2, 2)
+	print(str5, 28, 65, BLACK, false, 1)
+	spr(324, 10, 76, BLACK, 1, 1, 0, 2, 2)
+	print(str6, 28, 81, BLACK, false, 1)
+	print(str7, 10, 107, BLACK, false, 1)
+	if keyp(48) then init_level(enemies, 10, 1) end
+end
 
 -- initialization
 player = Player:new()
